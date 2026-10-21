@@ -13,6 +13,7 @@ import {
   Receipt
 } from 'lucide-react';
 import { useRestaurant } from '../context/RestaurantContext';
+import { calculateCategoryTotals, calculateChainInventoryTotals } from '../utils/inventoryAnalytics';
 
 interface Props {
   isOpen: boolean;
@@ -30,13 +31,16 @@ export const ChainDailyReportModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   // Format All-Branches Master WhatsApp message
   const generateChainWhatsAppReport = () => {
+    const chainInv = calculateChainInventoryTotals(branches, selectedDate, getRecord);
+
     const branchSummaries = branches.map(b => {
       const rec = getRecord(b.id, selectedDate);
       const calc = calculateBranchProfit(rec);
+      const meatTotals = calculateCategoryTotals(rec.meatItems, 'meat');
       return `📍 *${b.name.toUpperCase()}*
   • Sales: ₹${calc.totalSales.toLocaleString('en-IN')} (Cash: ₹${(rec.sales.cash || 0).toLocaleString('en-IN')} | UPI: ₹${(rec.sales.phonePe || 0).toLocaleString('en-IN')})
-  • Kharcha: ₹${calc.totalExpenses.toLocaleString('en-IN')}
-  • Net: ₹${calc.netProfit.toLocaleString('en-IN')} | BAL: ₹${calc.drawerCashBalance.toLocaleString('en-IN')}`;
+  • Kharcha: ₹${calc.totalExpenses.toLocaleString('en-IN')} | Net: ₹${calc.netProfit.toLocaleString('en-IN')}
+  • 🍗 Chicken: Buy ${meatTotals.purchasedDisplay} | Stock ${meatTotals.stockDisplay}`;
     }).join('\n\n');
 
     return `*👑 M.M.A. KABABS ROLLS & BIRYANI CENTER*
@@ -48,6 +52,12 @@ export const ChainDailyReportModal: React.FC<Props> = ({ isOpen, onClose }) => {
 • 💸 Total Chain Kharcha: ₹${chain.totalExpenses.toLocaleString('en-IN')}
 • 💵 Total Drawer Cash (BAL): ₹${chain.totalCashBalance.toLocaleString('en-IN')}
 *👉 NET CHAIN ${isProfit ? 'PROFIT' : 'LOSS'}: ₹${chain.totalProfit.toLocaleString('en-IN')}* (${chain.totalSales > 0 ? ((chain.totalProfit / chain.totalSales) * 100).toFixed(1) : 0}% margin)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*🍗 MASTER STOCK & RAW MATERIAL INTAKE:*
+• 🍗 Total 6-Branch Chicken: Buy ${chainInv.meat.purchasedDisplay} | Stock ${chainInv.meat.stockDisplay}
+• 🌾 Total Groceries: Buy ${chainInv.grocery.purchasedDisplay} | Stock ${chainInv.grocery.stockDisplay}
+• 🥛 Total Dairy: Buy ${chainInv.dairy.purchasedDisplay} | Stock ${chainInv.dairy.stockDisplay}
+• 🥕 Total Vegetables: Buy ${chainInv.vegetable.purchasedDisplay} | Stock ${chainInv.vegetable.stockDisplay}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 *📊 BRANCH-BY-BRANCH BREAKDOWN:*
 ${branchSummaries}

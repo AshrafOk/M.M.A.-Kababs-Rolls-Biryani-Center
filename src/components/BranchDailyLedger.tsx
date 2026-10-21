@@ -23,6 +23,7 @@ import { useRestaurant } from '../context/RestaurantContext';
 import { BranchId, InventoryItemRow } from '../types/restaurant';
 import { COMMON_EXPENSE_PRESETS } from '../data/mockData';
 import { BranchSalesTrendChart } from './BranchSalesTrendChart';
+import { calculateCategoryTotals } from '../utils/inventoryAnalytics';
 
 interface Props {
   branchId: BranchId;
@@ -53,6 +54,12 @@ export const BranchDailyLedger: React.FC<Props> = ({ branchId, onOpenPasswordMod
   const currentBranch = branches.find(b => b.id === branchId) || branches[0];
   const record = getRecord(branchId, selectedDate);
   const profitCalc = calculateBranchProfit(record);
+
+  // Live category totals for purchased and stock KG
+  const meatTotals = calculateCategoryTotals(record.meatItems, 'meat');
+  const groceryTotals = calculateCategoryTotals(record.groceryItems, 'grocery');
+  const dairyTotals = calculateCategoryTotals(record.dairyItems, 'dairy');
+  const vegetableTotals = calculateCategoryTotals(record.vegetableItems, 'vegetable');
 
   const { canEdit, reason: lockReason } = isCurrentRecordEditable(selectedDate);
   const isAdmin = authSession?.role === 'admin';
@@ -592,6 +599,20 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 </div>
               ))}
             </div>
+
+            {/* Total Meat KG Footer */}
+            <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs bg-amber-50/70 p-2 rounded-xl">
+              <span className="font-bold text-amber-950 text-[11px]">Total Chicken / Meat:</span>
+              <div className="font-mono text-xs font-bold text-right flex items-center gap-1">
+                <span className="text-emerald-800 font-black bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-300/60" title="Purchased Today">
+                  {meatTotals.purchasedDisplay}
+                </span>
+                <span className="text-stone-300">|</span>
+                <span className="text-amber-900 font-black bg-amber-100/80 px-2 py-0.5 rounded border border-amber-300/60" title="Stock Tonight">
+                  {meatTotals.stockDisplay}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* COLUMN 2: GROCERY & STAPLES */}
@@ -695,6 +716,20 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 </div>
               ))}
             </div>
+
+            {/* Total Grocery KG Footer */}
+            <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs bg-emerald-50/70 p-2 rounded-xl">
+              <span className="font-bold text-emerald-950 text-[11px]">Total Groceries:</span>
+              <div className="font-mono text-xs font-bold text-right flex items-center gap-1">
+                <span className="text-emerald-800 font-black bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-300/60" title="Purchased Today">
+                  {groceryTotals.purchasedDisplay}
+                </span>
+                <span className="text-stone-300">|</span>
+                <span className="text-amber-900 font-black bg-amber-100/80 px-2 py-0.5 rounded border border-amber-300/60" title="Stock Tonight">
+                  {groceryTotals.stockDisplay}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* COLUMN 3: DAIRY ITEMS (RENAMED FROM DAHI PANEER) */}
@@ -797,6 +832,20 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 </div>
               ))}
             </div>
+
+            {/* Total Dairy KG/L Footer */}
+            <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs bg-blue-50/70 p-2 rounded-xl">
+              <span className="font-bold text-blue-950 text-[11px]">Total Dairy Items:</span>
+              <div className="font-mono text-xs font-bold text-right flex items-center gap-1">
+                <span className="text-emerald-800 font-black bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-300/60" title="Purchased Today">
+                  {dairyTotals.purchasedDisplay}
+                </span>
+                <span className="text-stone-300">|</span>
+                <span className="text-amber-900 font-black bg-amber-100/80 px-2 py-0.5 rounded border border-amber-300/60" title="Stock Tonight">
+                  {dairyTotals.stockDisplay}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* COLUMN 4: VEGETABLES (NEW DEDICATED SEPARATE COLUMN!) */}
@@ -898,6 +947,20 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Total Vegetables KG Footer */}
+            <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs bg-orange-50/70 p-2 rounded-xl">
+              <span className="font-bold text-orange-950 text-[11px]">Total Vegetables:</span>
+              <div className="font-mono text-xs font-bold text-right flex items-center gap-1">
+                <span className="text-emerald-800 font-black bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-300/60" title="Purchased Today">
+                  {vegetableTotals.purchasedDisplay}
+                </span>
+                <span className="text-stone-300">|</span>
+                <span className="text-amber-900 font-black bg-amber-100/80 px-2 py-0.5 rounded border border-amber-300/60" title="Stock Tonight">
+                  {vegetableTotals.stockDisplay}
+                </span>
+              </div>
             </div>
           </div>
         </div>

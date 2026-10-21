@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Building2, 
   TrendingUp, 
@@ -12,11 +12,13 @@ import {
   Sparkles,
   Layers,
   UtensilsCrossed,
-  Smartphone
+  Smartphone,
+  Boxes
 } from 'lucide-react';
 import { useRestaurant } from '../context/RestaurantContext';
 import { BranchId } from '../types/restaurant';
 import { ChainSalesTrendChart } from './ChainSalesTrendChart';
+import { calculateCategoryTotals, calculateChainInventoryTotals } from '../utils/inventoryAnalytics';
 
 interface Props {
   onSelectBranch: (id: BranchId) => void;
@@ -51,6 +53,11 @@ export const ChainOverview: React.FC<Props> = ({
   const netProfit = chainTotals.totalProfit;
   const isChainProfit = netProfit >= 0;
   const marginPercent = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
+
+  // Aggregate stock & purchases across all 6 branches
+  const chainInventory = useMemo(() => {
+    return calculateChainInventoryTotals(branches, selectedDate, getRecord);
+  }, [branches, selectedDate, getRecord, records]);
 
   return (
     <div className="space-y-6">
@@ -209,6 +216,168 @@ export const ChainOverview: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* Chain-Wide Stock & Purchases Aggregates Across All 6 Branches */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-amber-500/20 to-orange-500/20 text-amber-900 rounded-2xl border border-amber-500/30 shrink-0">
+              <Boxes className="w-5 h-5 text-amber-700" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-base sm:text-lg text-stone-900 tracking-tight">
+                  All 6 Branches Combined Stock &amp; Purchases Total
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                  {selectedDate}
+                </span>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Consolidated daily intake (purchased) and closing stock in KG across all Bangalore outlets
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 font-bold border border-emerald-200/80 flex items-center gap-1.5 shadow-xs">
+              <span>🍗 Total Chicken Bought:</span>
+              <span className="font-mono text-sm font-black text-emerald-900">{chainInventory.meat.totalKgPurchased} kg</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Aggregated Category Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Chicken & Meat Total */}
+          <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 hover:border-amber-300 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🍗</span>
+                  <span className="font-black text-xs uppercase tracking-wider text-amber-950">Chicken &amp; Meat</span>
+                </div>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                  6 Branches
+                </span>
+              </div>
+              <div className="mt-2 space-y-1.5 font-mono">
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-amber-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Bought:</span>
+                  <span className="text-sm font-black text-emerald-700">
+                    {chainInventory.meat.purchasedDisplay}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-amber-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Stock Left:</span>
+                  <span className="text-sm font-black text-amber-800">
+                    {chainInventory.meat.stockDisplay}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] text-stone-500 mt-2 block">
+              Raw CK, Boneless, Mix, TC, GC
+            </span>
+          </div>
+
+          {/* Grocery & Staples Total */}
+          <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 hover:border-emerald-300 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🌾</span>
+                  <span className="font-black text-xs uppercase tracking-wider text-emerald-950">Grocery &amp; Staples</span>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  6 Branches
+                </span>
+              </div>
+              <div className="mt-2 space-y-1.5 font-mono">
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-emerald-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Bought:</span>
+                  <span className="text-sm font-black text-emerald-700">
+                    {chainInventory.grocery.purchasedDisplay}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-emerald-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Stock Left:</span>
+                  <span className="text-sm font-black text-amber-800">
+                    {chainInventory.grocery.stockDisplay}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] text-stone-500 mt-2 block">
+              Maida, rice bags, cooking oil, spices
+            </span>
+          </div>
+
+          {/* Dairy Total */}
+          <div className="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🥛</span>
+                  <span className="font-black text-xs uppercase tracking-wider text-sky-950">Dairy Products</span>
+                </div>
+                <span className="text-[10px] font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">
+                  6 Branches
+                </span>
+              </div>
+              <div className="mt-2 space-y-1.5 font-mono">
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-sky-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Bought:</span>
+                  <span className="text-sm font-black text-emerald-700">
+                    {chainInventory.dairy.purchasedDisplay}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-sky-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Stock Left:</span>
+                  <span className="text-sm font-black text-amber-800">
+                    {chainInventory.dairy.stockDisplay}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] text-stone-500 mt-2 block">
+              Curd, fresh paneer, milk &amp; butter
+            </span>
+          </div>
+
+          {/* Vegetables Total */}
+          <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-200/80 hover:border-orange-300 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🥕</span>
+                  <span className="font-black text-xs uppercase tracking-wider text-orange-950">Fresh Vegetables</span>
+                </div>
+                <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                  6 Branches
+                </span>
+              </div>
+              <div className="mt-2 space-y-1.5 font-mono">
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-orange-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Bought:</span>
+                  <span className="text-sm font-black text-emerald-700">
+                    {chainInventory.vegetable.purchasedDisplay}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-white/95 p-2 rounded-xl border border-orange-200/60 shadow-2xs">
+                  <span className="text-[11px] font-sans font-bold text-stone-600">Total Stock Left:</span>
+                  <span className="text-sm font-black text-amber-800">
+                    {chainInventory.vegetable.stockDisplay}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] text-stone-500 mt-2 block">
+              Pyaaz (onions), tomatoes, chillies, mint
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Aggregate Sales Trend Graph with Weekly/Monthly/Yearly and 6-Branch Comparison */}
       <ChainSalesTrendChart
         selectedDate={selectedDate}
@@ -236,6 +405,10 @@ export const ChainOverview: React.FC<Props> = ({
           {branches.map((branch, index) => {
             const rec = getRecord(branch.id, selectedDate);
             const calc = calculateBranchProfit(rec);
+            const meatTotals = calculateCategoryTotals(rec.meatItems, 'meat');
+            const groceryTotals = calculateCategoryTotals(rec.groceryItems, 'grocery');
+            const dairyTotals = calculateCategoryTotals(rec.dairyItems, 'dairy');
+            const vegetableTotals = calculateCategoryTotals(rec.vegetableItems, 'vegetable');
 
             return (
               <div
@@ -280,31 +453,83 @@ export const ChainOverview: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  {/* Stock Counts Preview */}
-                  <div className="mt-3 space-y-1 text-xs">
-                    <div className="flex items-center justify-between text-stone-600">
-                      <span>🍗 Meat Items Entered:</span>
-                      <span className="font-semibold text-stone-900 font-mono">
-                        {rec.meatItems.length} rows
+                  {/* Stock & Purchases Total KG Calculation (Replacing row count) */}
+                  <div className="mt-3.5 pt-3 border-t border-stone-100 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                      <span>Daily Purchases &amp; Stock</span>
+                      <span className="text-[10px] lowercase text-stone-400 font-mono">
+                        <span className="text-emerald-700 font-bold">bought</span> | <span className="text-amber-800 font-bold">stock</span>
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-stone-600">
-                      <span>🌾 Grocery Items:</span>
-                      <span className="font-semibold text-stone-900 font-mono">
-                        {rec.groceryItems.length} rows
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-stone-600">
-                      <span>🥛 Dairy Items:</span>
-                      <span className="font-semibold text-stone-900 font-mono">
-                        {rec.dairyItems.length} rows
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-stone-600">
-                      <span>🥕 Vegetables:</span>
-                      <span className="font-semibold text-stone-900 font-mono">
-                        {rec.vegetableItems.length} rows
-                      </span>
+
+                    <div className="space-y-1.5 text-xs">
+                      {/* 🍗 Chicken & Meat */}
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-stone-50/80 border border-stone-200/70 hover:bg-stone-100/80 transition-colors">
+                        <div className="flex items-center gap-1.5 font-bold text-stone-800">
+                          <span>🍗</span>
+                          <span className="text-xs">Chicken / Meat:</span>
+                        </div>
+                        <div className="text-right font-mono text-xs flex items-center gap-1">
+                          <span className="font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-300/60" title="Purchased Today">
+                            {meatTotals.purchasedDisplay}
+                          </span>
+                          <span className="text-stone-300">|</span>
+                          <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300/60" title="Closing Stock">
+                            {meatTotals.stockDisplay}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 🌾 Grocery */}
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-stone-50/80 border border-stone-200/70 hover:bg-stone-100/80 transition-colors">
+                        <div className="flex items-center gap-1.5 font-bold text-stone-800">
+                          <span>🌾</span>
+                          <span className="text-xs">Grocery Items:</span>
+                        </div>
+                        <div className="text-right font-mono text-xs flex items-center gap-1">
+                          <span className="font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-300/60" title="Purchased Today">
+                            {groceryTotals.purchasedDisplay}
+                          </span>
+                          <span className="text-stone-300">|</span>
+                          <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300/60" title="Closing Stock">
+                            {groceryTotals.stockDisplay}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 🥛 Dairy */}
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-stone-50/80 border border-stone-200/70 hover:bg-stone-100/70 transition-colors">
+                        <div className="flex items-center gap-1.5 font-bold text-stone-800">
+                          <span>🥛</span>
+                          <span className="text-xs">Dairy Items:</span>
+                        </div>
+                        <div className="text-right font-mono text-xs flex items-center gap-1">
+                          <span className="font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-300/60" title="Purchased Today">
+                            {dairyTotals.purchasedDisplay}
+                          </span>
+                          <span className="text-stone-300">|</span>
+                          <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300/60" title="Closing Stock">
+                            {dairyTotals.stockDisplay}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 🥕 Vegetables */}
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-stone-50/80 border border-stone-200/70 hover:bg-stone-100/70 transition-colors">
+                        <div className="flex items-center gap-1.5 font-bold text-stone-800">
+                          <span>🥕</span>
+                          <span className="text-xs">Vegetables:</span>
+                        </div>
+                        <div className="text-right font-mono text-xs flex items-center gap-1">
+                          <span className="font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-300/60" title="Purchased Today">
+                            {vegetableTotals.purchasedDisplay}
+                          </span>
+                          <span className="text-stone-300">|</span>
+                          <span className="font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300/60" title="Closing Stock">
+                            {vegetableTotals.stockDisplay}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
