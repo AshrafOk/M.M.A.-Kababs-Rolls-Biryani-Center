@@ -176,7 +176,7 @@ export const ChainSalesTrendChart: React.FC<Props> = ({
                   <span className="truncate max-w-[130px]">{entry.name}:</span>
                 </span>
                 <span className="font-mono font-bold text-white shrink-0">
-                  ₹{Number(entry.value).toLocaleString('en-IN')}
+                  {Number(entry.value) === 0 ? '₹00' : `₹${Number(entry.value).toLocaleString('en-IN')}`}
                 </span>
               </div>
             ))}
@@ -473,7 +473,7 @@ export const ChainSalesTrendChart: React.FC<Props> = ({
               axisLine={{ stroke: '#d6d3d1' }}
               tick={{ fill: '#78716c', fontSize: 11 }}
               tickFormatter={formatINR}
-              domain={[0, metrics.totalSales > 0 ? 'auto' : 50000]}
+              domain={[0, metrics.totalSales > 0 ? 'auto' : 1000]}
               width={65}
             />
             <Tooltip content={<CustomTooltip />} />

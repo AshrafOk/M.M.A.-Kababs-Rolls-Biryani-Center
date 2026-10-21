@@ -11,7 +11,8 @@ import {
   RotateCcw,
   Sparkles,
   Layers,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Smartphone
 } from 'lucide-react';
 import { useRestaurant } from '../context/RestaurantContext';
 import { BranchId } from '../types/restaurant';
@@ -22,13 +23,15 @@ interface Props {
   onOpenBackup: () => void;
   onOpenChainReport: () => void;
   onOpenPasswordModal: () => void;
+  onOpenMobileInstall?: () => void;
 }
 
 export const ChainOverview: React.FC<Props> = ({ 
   onSelectBranch, 
   onOpenBackup, 
   onOpenChainReport, 
-  onOpenPasswordModal 
+  onOpenPasswordModal,
+  onOpenMobileInstall,
 }) => {
   const { 
     branches, 
@@ -77,6 +80,16 @@ export const ChainOverview: React.FC<Props> = ({
               >
                 <span>💾 Backup / Restore DB</span>
               </button>
+              {onOpenMobileInstall && (
+                <button
+                  onClick={onOpenMobileInstall}
+                  className="px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 border border-emerald-400/40 text-white rounded-full text-xs font-semibold backdrop-blur-sm transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  title="Install on Android & Apple iOS, or view OTA push updates guide"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-200" />
+                  <span>📱 Android &amp; Apple Apps</span>
+                </button>
+              )}
             </div>
           </div>
 

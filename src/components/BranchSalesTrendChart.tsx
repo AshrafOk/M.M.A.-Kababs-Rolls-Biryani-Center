@@ -130,7 +130,7 @@ export const BranchSalesTrendChart: React.FC<Props> = ({
                   <span>{entry.name}:</span>
                 </span>
                 <span className="font-mono font-bold text-white">
-                  ₹{Number(entry.value).toLocaleString('en-IN')}
+                  {Number(entry.value) === 0 ? '₹00' : `₹${Number(entry.value).toLocaleString('en-IN')}`}
                 </span>
               </div>
             ))}
@@ -392,7 +392,7 @@ export const BranchSalesTrendChart: React.FC<Props> = ({
                   axisLine={{ stroke: '#e7e5e4' }}
                   tick={{ fill: '#78716c', fontSize: 11 }}
                   tickFormatter={formatINR}
-                  domain={[0, metrics.totalSales > 0 ? 'auto' : 50000]}
+                  domain={[0, metrics.totalSales > 0 ? 'auto' : 1000]}
                   width={60}
                 />
                 <Tooltip content={<CustomTooltip />} />

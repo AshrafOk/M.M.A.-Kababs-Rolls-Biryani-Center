@@ -23,6 +23,9 @@ export interface DataPoint {
  * Format currency into Indian format (e.g. ₹45k, ₹1.5L)
  */
 export const formatINR = (value: number): string => {
+  if (value === 0) {
+    return '₹00';
+  }
   if (value >= 10000000) {
     return `₹${(value / 10000000).toFixed(2)}Cr`;
   }

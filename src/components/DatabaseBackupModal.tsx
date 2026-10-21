@@ -18,9 +18,11 @@ interface Props {
 }
 
 export const DatabaseBackupModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { records, branches, exportDatabaseFile, restoreDatabaseFromFile } = useRestaurant();
+  const { records, branches, exportDatabaseFile, restoreDatabaseFromFile, resetAllToZero } = useRestaurant();
   const [restoreText, setRestoreText] = useState('');
   const [restoreStatus, setRestoreStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [resetStatus, setResetStatus] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -171,6 +173,68 @@ export const DatabaseBackupModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <Upload className="w-4 h-4" />
               <span>Confirm & Restore All Records</span>
             </button>
+          </div>
+
+          {/* SECTION 3: START FRESH WITH 00 COUNT ON ALL BRANCHES */}
+          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-amber-700 shrink-0" />
+                <h4 className="font-bold text-amber-950 text-sm">3. Start Fresh with 00 on All Branches</h4>
+              </div>
+              <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold text-[10px]">
+                Clean Count 00
+              </span>
+            </div>
+
+            <p className="text-amber-800 text-xs leading-relaxed">
+              Resets all graphs, inventory tallies, and sales counters to clean <strong>00</strong> across all 6 branches. Perfect when you are ready to begin feeding your actual daily branch operations!
+            </p>
+
+            {resetStatus && (
+              <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl flex items-center gap-2 font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{resetStatus}</span>
+              </div>
+            )}
+
+            {!confirmReset ? (
+              <button
+                type="button"
+                onClick={() => setConfirmReset(true)}
+                className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer text-xs"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Reset All Branches to 00 (Clean Slate)</span>
+              </button>
+            ) : (
+              <div className="p-3 bg-amber-100/80 rounded-xl border border-amber-300 space-y-2">
+                <p className="text-amber-950 font-bold text-xs">
+                  Are you sure you want to reset all 6 branches to 00 count?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetAllToZero();
+                      setConfirmReset(false);
+                      setResetStatus('All 6 Bangalore branches have been reset to 00! You can now start feeding daily sales.');
+                      setTimeout(() => setResetStatus(null), 4000);
+                    }}
+                    className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs cursor-pointer transition-colors"
+                  >
+                    Yes, Reset to 00
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmReset(false)}
+                    className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold rounded-lg text-xs cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

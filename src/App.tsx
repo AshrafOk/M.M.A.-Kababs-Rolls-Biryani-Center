@@ -72,6 +72,7 @@ function MainContent() {
             onOpenBackup={() => setIsBackupOpen(true)}
             onOpenChainReport={() => setIsChainReportOpen(true)}
             onOpenPasswordModal={() => setIsPasswordModalOpen(true)}
+            onOpenMobileInstall={() => setIsAndroidInstallOpen(true)}
           />
         )}
 

@@ -116,17 +116,16 @@ export const Navbar: React.FC<Props> = ({
               )}
             </div>
 
-            {/* Install as Android App Button (Hides when already installed in standalone mode) */}
-            {!isInstalled && (
-              <button
-                onClick={onOpenAndroidInstall}
-                className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer border border-emerald-400/30"
-                title="Install MMA Kababs on your Android phone"
-              >
-                <Smartphone className="w-3.5 h-3.5 text-emerald-200" />
-                <span className="hidden sm:inline">Android App</span>
-              </button>
-            )}
+            {/* Mobile Apps & Instant Updates (Android & Apple iOS) */}
+            <button
+              onClick={onOpenAndroidInstall}
+              className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer border border-emerald-400/30"
+              title="Install on Android & Apple iOS, or view how to push updates"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-200" />
+              <span className="hidden sm:inline">Android &amp; Apple Apps</span>
+              <span className="sm:hidden">Apps</span>
+            </button>
 
             {/* Database Backup & Restore - strictly Admin only (hidden for all branch managers) */}
             {isAdmin && (
