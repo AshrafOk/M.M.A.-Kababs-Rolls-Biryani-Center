@@ -12,7 +12,6 @@ import {
   Sparkles,
   Layers,
   UtensilsCrossed,
-  Smartphone,
   Boxes
 } from 'lucide-react';
 import { useRestaurant } from '../context/RestaurantContext';
@@ -73,30 +72,6 @@ export const ChainOverview: React.FC<Props> = ({
               <div className="text-xs text-stone-300 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
                 Date: <span className="font-bold text-white font-mono">{selectedDate}</span>
               </div>
-              <button
-                onClick={onOpenPasswordModal}
-                className="px-3 py-1 bg-stone-800 hover:bg-stone-700 border border-stone-600 text-amber-300 rounded-full text-xs font-semibold backdrop-blur-sm transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                title="Reset admin password or manager passwords"
-              >
-                <span>🔑 Manage Passwords</span>
-              </button>
-              <button
-                onClick={onOpenBackup}
-                className="px-3 py-1 bg-emerald-700/80 hover:bg-emerald-600 border border-emerald-400/40 text-white rounded-full text-xs font-semibold backdrop-blur-sm transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                title="Backup database file or restore after crash"
-              >
-                <span>💾 Backup / Restore DB</span>
-              </button>
-              {onOpenMobileInstall && (
-                <button
-                  onClick={onOpenMobileInstall}
-                  className="px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 border border-emerald-400/40 text-white rounded-full text-xs font-semibold backdrop-blur-sm transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                  title="Install on Android & Apple iOS, or view OTA push updates guide"
-                >
-                  <Smartphone className="w-3.5 h-3.5 text-emerald-200" />
-                  <span>📱 Android &amp; Apple Apps</span>
-                </button>
-              )}
             </div>
           </div>
 
