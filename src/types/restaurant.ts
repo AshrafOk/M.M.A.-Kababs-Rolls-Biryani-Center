@@ -12,7 +12,6 @@ export interface BranchInfo {
   area: string;
   address: string;
   managerName: string;
-  phone: string;
   color: string;
 }
 
@@ -79,4 +78,18 @@ export interface DailyProfitCalculation {
   cashCollected: number;
   cashExpenses: number;
   drawerCashBalance: number; // cashCollected - totalExpenses
+}
+
+export type UserRole = 'admin' | 'manager';
+
+export interface AuthSession {
+  role: UserRole;
+  branchId: BranchId | null; // null if admin viewing chain
+  displayName: string;
+  loginTime: string;
+}
+
+export interface PasswordStore {
+  admin: string;
+  branches: Record<BranchId, string>;
 }

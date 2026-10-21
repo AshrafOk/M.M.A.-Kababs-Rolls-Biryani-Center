@@ -15,7 +15,9 @@ import {
   Utensils,
   Milk,
   Carrot,
-  Package
+  Package,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
 import { useRestaurant } from '../context/RestaurantContext';
 import { BranchId, InventoryItemRow } from '../types/restaurant';
@@ -23,9 +25,10 @@ import { COMMON_EXPENSE_PRESETS } from '../data/mockData';
 
 interface Props {
   branchId: BranchId;
+  onOpenPasswordModal?: () => void;
 }
 
-export const BranchDailyLedger: React.FC<Props> = ({ branchId }) => {
+export const BranchDailyLedger: React.FC<Props> = ({ branchId, onOpenPasswordModal }) => {
   const { 
     branches, 
     selectedDate, 
@@ -38,12 +41,17 @@ export const BranchDailyLedger: React.FC<Props> = ({ branchId }) => {
     updateExpense, 
     deleteExpense,
     updateRecord,
-    calculateBranchProfit 
+    calculateBranchProfit,
+    authSession,
+    isCurrentRecordEditable 
   } = useRestaurant();
 
   const currentBranch = branches.find(b => b.id === branchId) || branches[0];
   const record = getRecord(branchId, selectedDate);
   const profitCalc = calculateBranchProfit(record);
+
+  const { canEdit, reason: lockReason } = isCurrentRecordEditable(selectedDate);
+  const isAdmin = authSession?.role === 'admin';
 
   // States for adding custom item rows
   const [newMeatName, setNewMeatName] = useState('');
@@ -194,7 +202,7 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
               </span>
             </div>
             <p className="text-xs text-stone-500 mt-1">
-              📍 {currentBranch.address} • Phone: <span className="font-semibold text-stone-700">{currentBranch.phone}</span>
+              📍 {currentBranch.address}
             </p>
           </div>
         </div>
@@ -212,28 +220,68 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
             />
           </div>
 
-          <button
-            onClick={handleCopyWhatsApp}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer ${
-              copied
-                ? 'bg-emerald-700 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-            }`}
-          >
-            {copied ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Copied for WhatsApp!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-4 h-4" />
-                <span>Copy WhatsApp Report</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleCopyWhatsApp}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer ${
+                copied
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-stone-800 hover:bg-stone-900 text-white'
+              }`}
+            >
+              {copied ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4" />
+                  <span>Copy Report</span>
+                </>
+              )}
+            </button>
+
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(generateWhatsAppReport())}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer"
+              title="Open directly in WhatsApp Web or WhatsApp mobile app"
+            >
+              <span>📲 Share on WhatsApp</span>
+            </a>
+          </div>
         </div>
       </div>
+
+      {/* Security & Time-Lock Alert Banner */}
+      {!canEdit && (
+        <div className="p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 text-amber-950 flex items-start gap-3 shadow-sm animate-fade-in">
+          <div className="p-2 bg-amber-200/70 text-amber-900 rounded-xl shrink-0 mt-0.5">
+            <Lock className="w-5 h-5" />
+          </div>
+          <div className="flex-1 text-xs">
+            <div className="font-bold text-sm text-amber-900">🔒 Historical Date Locked (Read-Only)</div>
+            <p className="mt-1 text-amber-800 leading-relaxed">
+              As per restaurant management policy, daily stock and expense entries can only be modified until <strong>6:00 AM the next morning</strong>. This day's records ({selectedDate}) are now securely stored. Only the Admin can make changes if needed.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {canEdit && isAdmin && (
+        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-300 text-emerald-950 flex items-center justify-between text-xs shadow-sm">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span className="font-bold">👑 Admin Historical Override Active:</span>
+            <span>You have full administrative privileges to edit any date's data.</span>
+          </div>
+          <span className="text-[10px] font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">
+            Unlocked
+          </span>
+        </div>
+      )}
 
       {/* Real-time Profit & Loss and Cash Balance Calculator Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -333,10 +381,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
               <input
                 type="number"
                 min="0"
+                disabled={!canEdit}
                 value={record.sales.delivery || ''}
                 placeholder="00"
                 onChange={(e) => updateSales(branchId, { delivery: Number(e.target.value) || 0 })}
-                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -349,10 +398,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
               <input
                 type="number"
                 min="0"
+                disabled={!canEdit}
                 value={record.sales.phonePe || ''}
                 placeholder="00"
                 onChange={(e) => updateSales(branchId, { phonePe: Number(e.target.value) || 0 })}
-                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -365,10 +415,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
               <input
                 type="number"
                 min="0"
+                disabled={!canEdit}
                 value={record.sales.cardMachine || ''}
                 placeholder="00"
                 onChange={(e) => updateSales(branchId, { cardMachine: Number(e.target.value) || 0 })}
-                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -381,10 +432,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
               <input
                 type="number"
                 min="0"
+                disabled={!canEdit}
                 value={record.sales.cash || ''}
                 placeholder="00"
                 onChange={(e) => updateSales(branchId, { cash: Number(e.target.value) || 0 })}
-                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-emerald-950 bg-white border border-emerald-400 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-emerald-950 bg-white border border-emerald-400 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -397,10 +449,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
               <input
                 type="number"
                 min="0"
+                disabled={!canEdit}
                 value={record.sales.otherSales || ''}
                 placeholder="00"
                 onChange={(e) => updateSales(branchId, { otherSales: Number(e.target.value) || 0 })}
-                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full pl-6 pr-2 py-1.5 text-right font-black text-stone-900 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -431,17 +484,19 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 <h4 className="font-bold text-sm text-stone-900">🍗 Chicken & Meat</h4>
               </div>
-              <button
-                onClick={() => setShowAddMeat(!showAddMeat)}
-                className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add Row</span>
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setShowAddMeat(!showAddMeat)}
+                  className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Row</span>
+                </button>
+              )}
             </div>
 
             {/* Quick Add Form */}
-            {showAddMeat && (
+            {canEdit && showAddMeat && (
               <form onSubmit={handleAddMeatRow} className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 space-y-2 text-xs">
                 <div className="font-bold text-amber-950">Add Custom Meat Item:</div>
                 <input
@@ -483,13 +538,15 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <div key={item.id} className="p-2 rounded-xl border border-stone-100 bg-stone-50/70 hover:bg-amber-50/40 transition-colors space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-stone-800">{item.name}</span>
-                    <button
-                      onClick={() => deleteItemRow(branchId, 'meatItems', item.id)}
-                      className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
-                      title="Delete row"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => deleteItemRow(branchId, 'meatItems', item.id)}
+                        className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
+                        title="Delete row"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
@@ -497,10 +554,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.purchased || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'meatItems', item.id, 'purchased', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -508,10 +566,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.stock || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'meatItems', item.id, 'stock', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -527,17 +586,19 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                 <h4 className="font-bold text-sm text-stone-900">🌾 Grocery & Rice</h4>
               </div>
-              <button
-                onClick={() => setShowAddGrocery(!showAddGrocery)}
-                className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add Row</span>
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setShowAddGrocery(!showAddGrocery)}
+                  className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Row</span>
+                </button>
+              )}
             </div>
 
             {/* Quick Add Form */}
-            {showAddGrocery && (
+            {canEdit && showAddGrocery && (
               <form onSubmit={handleAddGroceryRow} className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-2 text-xs">
                 <div className="font-bold text-emerald-950">Add Custom Grocery:</div>
                 <input
@@ -580,13 +641,15 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <div key={item.id} className="p-2 rounded-xl border border-stone-100 bg-stone-50/70 hover:bg-emerald-50/40 transition-colors space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-stone-800">{item.name}</span>
-                    <button
-                      onClick={() => deleteItemRow(branchId, 'groceryItems', item.id)}
-                      className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
-                      title="Delete row"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => deleteItemRow(branchId, 'groceryItems', item.id)}
+                        className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
+                        title="Delete row"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
@@ -594,10 +657,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.purchased || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'groceryItems', item.id, 'purchased', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -605,10 +669,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.stock || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'groceryItems', item.id, 'stock', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -624,17 +689,19 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                 <h4 className="font-bold text-sm text-stone-900">🥛 Dairy Items</h4>
               </div>
-              <button
-                onClick={() => setShowAddDairy(!showAddDairy)}
-                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add Row</span>
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setShowAddDairy(!showAddDairy)}
+                  className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Row</span>
+                </button>
+              )}
             </div>
 
             {/* Quick Add Form */}
-            {showAddDairy && (
+            {canEdit && showAddDairy && (
               <form onSubmit={handleAddDairyRow} className="p-2.5 bg-blue-50 rounded-xl border border-blue-200 space-y-2 text-xs">
                 <div className="font-bold text-blue-950">Add Custom Dairy:</div>
                 <input
@@ -676,13 +743,15 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <div key={item.id} className="p-2 rounded-xl border border-stone-100 bg-stone-50/70 hover:bg-blue-50/40 transition-colors space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-stone-800">{item.name}</span>
-                    <button
-                      onClick={() => deleteItemRow(branchId, 'dairyItems', item.id)}
-                      className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
-                      title="Delete row"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => deleteItemRow(branchId, 'dairyItems', item.id)}
+                        className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
+                        title="Delete row"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
@@ -690,10 +759,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.purchased || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'dairyItems', item.id, 'purchased', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -701,10 +771,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.stock || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'dairyItems', item.id, 'stock', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -720,17 +791,19 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
                 <h4 className="font-bold text-sm text-stone-900">🥕 Vegetables</h4>
               </div>
-              <button
-                onClick={() => setShowAddVeg(!showAddVeg)}
-                className="px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add Row</span>
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setShowAddVeg(!showAddVeg)}
+                  className="px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-900 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Row</span>
+                </button>
+              )}
             </div>
 
             {/* Quick Add Form */}
-            {showAddVeg && (
+            {canEdit && showAddVeg && (
               <form onSubmit={handleAddVegRow} className="p-2.5 bg-orange-50 rounded-xl border border-orange-200 space-y-2 text-xs">
                 <div className="font-bold text-orange-950">Add Custom Vegetable:</div>
                 <input
@@ -772,13 +845,15 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                 <div key={item.id} className="p-2 rounded-xl border border-stone-100 bg-stone-50/70 hover:bg-orange-50/40 transition-colors space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-stone-800">{item.name}</span>
-                    <button
-                      onClick={() => deleteItemRow(branchId, 'vegetableItems', item.id)}
-                      className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
-                      title="Delete row"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => deleteItemRow(branchId, 'vegetableItems', item.id)}
+                        className="text-stone-300 hover:text-rose-600 p-0.5 cursor-pointer"
+                        title="Delete row"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
@@ -786,10 +861,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.purchased || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'vegetableItems', item.id, 'purchased', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-stone-900 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -797,10 +873,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                       <input
                         type="number"
                         min="0"
+                        disabled={!canEdit}
                         value={item.stock || ''}
                         placeholder="00"
                         onChange={(e) => updateItemRow(branchId, 'vegetableItems', item.id, 'stock', Number(e.target.value) || 0)}
-                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800"
+                        className="w-full p-1 border border-stone-300 rounded bg-white font-bold text-right text-emerald-800 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -836,16 +913,18 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
               <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                 <input
                   type="text"
+                  disabled={!canEdit}
                   value={exp.particular}
                   onChange={(e) => updateExpense(branchId, exp.id, { particular: e.target.value.toUpperCase() })}
-                  className="font-bold bg-white px-2 py-1 border border-stone-300 rounded text-stone-900 uppercase w-48 text-xs"
+                  className="font-bold bg-white px-2 py-1 border border-stone-300 rounded text-stone-900 uppercase w-48 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <input
                   type="text"
+                  disabled={!canEdit}
                   placeholder="Note / detail (optional)"
                   value={exp.note || ''}
                   onChange={(e) => updateExpense(branchId, exp.id, { note: e.target.value })}
-                  className="bg-transparent px-2 py-1 text-stone-500 text-xs flex-1 border-b border-dashed border-stone-300"
+                  className="bg-transparent px-2 py-1 text-stone-500 text-xs flex-1 border-b border-dashed border-stone-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -855,74 +934,81 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
                   <input
                     type="number"
                     min="0"
+                    disabled={!canEdit}
                     value={exp.amount || ''}
                     placeholder="00"
                     onChange={(e) => updateExpense(branchId, exp.id, { amount: Number(e.target.value) || 0 })}
-                    className="w-28 pl-6 pr-2 py-1 text-right font-black text-rose-700 border border-stone-300 rounded bg-white text-sm"
+                    className="w-28 pl-6 pr-2 py-1 text-right font-black text-rose-700 border border-stone-300 rounded bg-white text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
-                <button
-                  onClick={() => deleteExpense(branchId, exp.id)}
-                  className="text-stone-300 hover:text-rose-600 p-1 rounded cursor-pointer"
-                  title="Remove expense"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => deleteExpense(branchId, exp.id)}
+                    className="text-stone-300 hover:text-rose-600 p-1 rounded cursor-pointer"
+                    title="Remove expense"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
 
         {/* Add New Expense Form */}
-        <form onSubmit={handleAddExpenseSubmit} className="pt-2 p-3 bg-stone-50 rounded-xl border border-stone-200 flex flex-wrap items-center gap-2">
-          <input
-            type="text"
-            placeholder="Particular (e.g. PEMANT, WATER, GAS)"
-            value={expParticular}
-            onChange={(e) => setExpParticular(e.target.value)}
-            className="flex-1 min-w-[160px] p-2 text-xs uppercase font-bold border border-stone-300 rounded-lg bg-white"
-          />
-          <div className="relative w-32">
-            <span className="absolute left-2.5 top-2 text-stone-400 font-bold text-xs">₹</span>
+        {canEdit && (
+          <form onSubmit={handleAddExpenseSubmit} className="pt-2 p-3 bg-stone-50 rounded-xl border border-stone-200 flex flex-wrap items-center gap-2">
             <input
-              type="number"
-              placeholder="00"
-              value={expAmount}
-              onChange={(e) => setExpAmount(e.target.value)}
-              className="w-full pl-6 pr-2 py-2 text-right text-xs font-bold border border-stone-300 rounded-lg bg-white"
+              type="text"
+              placeholder="Particular (e.g. PEMANT, WATER, GAS)"
+              value={expParticular}
+              onChange={(e) => setExpParticular(e.target.value)}
+              className="flex-1 min-w-[160px] p-2 text-xs uppercase font-bold border border-stone-300 rounded-lg bg-white"
             />
-          </div>
-          <input
-            type="text"
-            placeholder="Notes (optional)"
-            value={expNote}
-            onChange={(e) => setExpNote(e.target.value)}
-            className="flex-1 min-w-[160px] p-2 text-xs border border-stone-300 rounded-lg bg-white"
-          />
-          <button
-            type="submit"
-            disabled={!expParticular.trim() || !expAmount}
-            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-40 cursor-pointer flex items-center gap-1 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Kharcha Row</span>
-          </button>
-        </form>
+            <div className="relative w-32">
+              <span className="absolute left-2.5 top-2 text-stone-400 font-bold text-xs">₹</span>
+              <input
+                type="number"
+                placeholder="00"
+                value={expAmount}
+                onChange={(e) => setExpAmount(e.target.value)}
+                className="w-full pl-6 pr-2 py-2 text-right text-xs font-bold border border-stone-300 rounded-lg bg-white"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Notes (optional)"
+              value={expNote}
+              onChange={(e) => setExpNote(e.target.value)}
+              className="flex-1 min-w-[160px] p-2 text-xs border border-stone-300 rounded-lg bg-white"
+            />
+            <button
+              type="submit"
+              disabled={!expParticular.trim() || !expAmount}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-40 cursor-pointer flex items-center gap-1 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Kharcha Row</span>
+            </button>
+          </form>
+        )}
 
         {/* Quick Presets for common expenses */}
-        <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-stone-500">
-          <span className="font-semibold text-stone-700">Quick Presets:</span>
-          {COMMON_EXPENSE_PRESETS.slice(0, 6).map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => setExpParticular(preset.split(' ')[0])}
-              className="px-2 py-0.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-[10px] font-medium transition-colors cursor-pointer"
-            >
-              +{preset.split(' ')[0]}
-            </button>
-          ))}
-        </div>
+        {canEdit && (
+          <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-stone-500">
+            <span className="font-semibold text-stone-700">Quick Presets:</span>
+            {COMMON_EXPENSE_PRESETS.slice(0, 6).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setExpParticular(preset.split(' ')[0])}
+                className="px-2 py-0.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-[10px] font-medium transition-colors cursor-pointer"
+              >
+                +{preset.split(' ')[0]}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* SECTION 4: MANAGER NOTES */}
@@ -931,10 +1017,11 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
           Manager End of Day Remarks / Handover Notes:
         </label>
         <textarea
+          disabled={!canEdit}
           value={record.notes || ''}
           onChange={(e) => updateRecord({ ...record, notes: e.target.value })}
           placeholder="e.g. Biryani demand was heavy; ordered 5 extra chicken packets for tomorrow morning..."
-          className="w-full p-3 text-xs border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-stone-50/50"
+          className="w-full p-3 text-xs border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-stone-50/50 disabled:opacity-60 disabled:cursor-not-allowed"
           rows={2}
         />
       </div>

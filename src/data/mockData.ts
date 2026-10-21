@@ -9,7 +9,6 @@ export const BANGALORE_BRANCHES: BranchInfo[] = [
     area: 'Kundalahalli Gate, ITPL Main Road',
     address: 'Near Kundalahalli Signal, Brookefield, Bengaluru 560037',
     managerName: 'Mohammad Farooq',
-    phone: '+91 98450 12341',
     color: 'emerald',
   },
   {
@@ -18,7 +17,6 @@ export const BANGALORE_BRANCHES: BranchInfo[] = [
     area: 'HRBR Layout 2nd Block / Banaswadi Main Rd',
     address: 'Subramanya Temple St, Banaswadi, Bengaluru 560043',
     managerName: 'Syed Tanveer',
-    phone: '+91 98450 12342',
     color: 'amber',
   },
   {
@@ -27,7 +25,6 @@ export const BANGALORE_BRANCHES: BranchInfo[] = [
     area: '100ft Road / 12th Main',
     address: 'Near CMH Hospital Road, Indiranagar, Bengaluru 560038',
     managerName: 'Arshad Khan',
-    phone: '+91 98450 12343',
     color: 'indigo',
   },
   {
@@ -36,7 +33,6 @@ export const BANGALORE_BRANCHES: BranchInfo[] = [
     area: 'Old Madras Road',
     address: 'Near KR Puram Hanging Bridge & Railway Station, Bengaluru 560036',
     managerName: 'Imran Pasha',
-    phone: '+91 98450 12344',
     color: 'rose',
   },
   {
@@ -45,7 +41,6 @@ export const BANGALORE_BRANCHES: BranchInfo[] = [
     area: 'Balagere Rd, Varthur-Panathur Link',
     address: 'Balagere Main Road, Near Sobha Dream Acres, Bengaluru 560087',
     managerName: 'Nasiruddin',
-    phone: '+91 98450 12345',
     color: 'cyan',
   },
   {
@@ -54,7 +49,6 @@ export const BANGALORE_BRANCHES: BranchInfo[] = [
     area: 'Varthur Kodi / Gunjur Road',
     address: 'Varthur Main Road, Opp Government High School, Bengaluru 560087',
     managerName: 'Rashid Ali',
-    phone: '+91 98450 12346',
     color: 'orange',
   },
 ];
@@ -150,3 +144,35 @@ export const COMMON_EXPENSE_PRESETS = [
   'MAIDA / FLOUR PAYMENT',
   'CLEANING & SANITATION',
 ];
+
+// Initial default passwords
+export const DEFAULT_ADMIN_PASSWORD = 'Sajid@@123';
+
+export const DEFAULT_BRANCH_PASSWORDS: Record<BranchId, string> = {
+  kundalahalli: 'Kunda@123',
+  banaswadi: 'Banas@123',
+  indiranagar: 'Indira@123',
+  'kr-puram': 'Krpuram@123',
+  balagere: 'Balagere@123',
+  varthur: 'Varthur@123',
+};
+
+/**
+ * Checks if a date's data is locked for branch managers.
+ * Rule: Entry of date D can be modified until next day (D + 1) at 06:00:00 AM.
+ * After that, data is locked and stored (read-only for managers, but admin can edit any date).
+ */
+export const isDateLockedForManager = (recordDate: string, now: Date = new Date()): boolean => {
+  try {
+    const parts = recordDate.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return false;
+    const [year, month, day] = parts;
+    
+    // Cutoff time: Date D + 1 day at 06:00:00 AM local time
+    const cutoffDate = new Date(year, month - 1, day + 1, 6, 0, 0, 0);
+    return now.getTime() > cutoffDate.getTime();
+  } catch {
+    return false;
+  }
+};
+
