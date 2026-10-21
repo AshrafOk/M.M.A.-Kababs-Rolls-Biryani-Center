@@ -1,0 +1,6 @@
+{
+  "name": "M.M.A. Kababs & Biryani - Multi-Branch ERP",
+  "description": "Daily sales, inventory stock tracking, expense ledger, and multi-branch monitoring for M.M.A. Kababs Rolls & Biryani Center across Bangalore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
