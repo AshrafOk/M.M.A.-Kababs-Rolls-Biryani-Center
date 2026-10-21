@@ -10,9 +10,11 @@ import {
   ShieldCheck,
   Store,
   LogIn,
-  Database
+  Database,
+  Smartphone
 } from 'lucide-react';
 import { useRestaurant } from '../context/RestaurantContext';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { BranchId } from '../types/restaurant';
 import { RESTAURANT_NAME, getTodayDateString } from '../data/mockData';
 
@@ -23,6 +25,7 @@ interface Props {
   onOpenChainReport: () => void;
   onOpenPasswordModal: () => void;
   onOpenLoginModal: () => void;
+  onOpenAndroidInstall: () => void;
 }
 
 export const Navbar: React.FC<Props> = ({ 
@@ -32,7 +35,9 @@ export const Navbar: React.FC<Props> = ({
   onOpenChainReport,
   onOpenPasswordModal,
   onOpenLoginModal,
+  onOpenAndroidInstall,
 }) => {
+  const { isInstalled } = usePWAInstall();
   const { 
     branches, 
     activeBranchId, 
@@ -70,9 +75,11 @@ export const Navbar: React.FC<Props> = ({
         <div className="flex items-center justify-between h-16 gap-3">
           {/* Logo & Brand Name */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center text-white shadow-md">
-              <UtensilsCrossed className="w-5 h-5 text-stone-950" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="M.M.A. Kababs & Rolls Logo" 
+              className="w-10 h-10 object-contain rounded-xl bg-black border border-amber-500/40 p-0.5 shadow-md shrink-0" 
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-base sm:text-lg tracking-tight text-white leading-none">
@@ -108,6 +115,18 @@ export const Navbar: React.FC<Props> = ({
                 </button>
               )}
             </div>
+
+            {/* Install as Android App Button (Hides when already installed in standalone mode) */}
+            {!isInstalled && (
+              <button
+                onClick={onOpenAndroidInstall}
+                className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer border border-emerald-400/30"
+                title="Install MMA Kababs on your Android phone"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-emerald-200" />
+                <span className="hidden sm:inline">Android App</span>
+              </button>
+            )}
 
             {/* Database Backup & Restore - strictly Admin only (hidden for all branch managers) */}
             {isAdmin && (

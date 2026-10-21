@@ -18,6 +18,7 @@ import {
   DEFAULT_BRANCH_PASSWORDS,
   isDateLockedForManager 
 } from '../data/mockData';
+import { generateDemoHistoricalRecords } from '../utils/salesSeedData';
 
 type InventoryCategory = 'meatItems' | 'groceryItems' | 'dairyItems' | 'vegetableItems';
 
@@ -71,9 +72,12 @@ interface RestaurantContextType {
   resetBranchPasswordByAdmin: (branchId: BranchId, newPassword: string) => { success: boolean; message: string };
   updateBranchPasswordByManager: (oldPassword: string, newPassword: string) => { success: boolean; message: string };
   isCurrentRecordEditable: (recordDate: string) => { canEdit: boolean; reason?: string };
+  resetAllToZero: () => void;
+  seedDemoHistory: (daysBack?: number) => void;
+  clearPastRecords: () => void;
 }
 
-const STORAGE_KEY = 'mma_kababs_records_fresh_v2';
+const STORAGE_KEY = 'mma_kababs_records_clean_v3';
 const AUTH_SESSION_KEY = 'mma_auth_session_v2';
 const PASSWORDS_KEY = 'mma_passwords_v2';
 
@@ -141,7 +145,10 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
       }
     } catch {
       // ignore
@@ -632,6 +639,51 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     URL.revokeObjectURL(url);
   };
 
+  // Seed realistic historical records for all branches for testing weekly/monthly/yearly trends
+  const seedDemoHistory = (daysBack: number = 35) => {
+    const historical = generateDemoHistoricalRecords(selectedDate, daysBack);
+    setRecords(prev => {
+      const merged = { ...historical, ...prev };
+      return merged;
+    });
+  };
+
+  // Clear past historical records, keeping today's records
+  const clearPastRecords = () => {
+    const today = getTodayDateString();
+    setRecords(prev => {
+      const filtered: Record<string, BranchDailyRecord> = {};
+      Object.entries(prev).forEach(([key, rec]) => {
+        if (rec.date === today) {
+          filtered[key] = rec;
+        }
+      });
+      BANGALORE_BRANCHES.forEach(b => {
+        const key = `${b.id}-${today}`;
+        if (!filtered[key]) {
+          filtered[key] = createFreshZeroRecord(b.id, today);
+        }
+      });
+      return filtered;
+    });
+  };
+
+  // Reset all branches to completely fresh 00 records
+  const resetAllToZero = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    const initial: Record<string, BranchDailyRecord> = {};
+    const today = getTodayDateString();
+    BANGALORE_BRANCHES.forEach(b => {
+      const rec = createFreshZeroRecord(b.id, today);
+      initial[rec.id] = rec;
+    });
+    setRecords(initial);
+  };
+
   return (
     <RestaurantContext.Provider
       value={{
@@ -665,6 +717,9 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         resetBranchPasswordByAdmin,
         updateBranchPasswordByManager,
         isCurrentRecordEditable,
+        resetAllToZero,
+        seedDemoHistory,
+        clearPastRecords,
       }}
     >
       {children}

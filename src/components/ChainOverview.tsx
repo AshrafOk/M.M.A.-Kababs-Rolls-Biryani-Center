@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useRestaurant } from '../context/RestaurantContext';
 import { BranchId } from '../types/restaurant';
+import { ChainSalesTrendChart } from './ChainSalesTrendChart';
 
 interface Props {
   onSelectBranch: (id: BranchId) => void;
@@ -26,10 +27,20 @@ interface Props {
 export const ChainOverview: React.FC<Props> = ({ 
   onSelectBranch, 
   onOpenBackup, 
-  onOpenChainReport,
+  onOpenChainReport, 
   onOpenPasswordModal 
 }) => {
-  const { branches, selectedDate, getRecord, calculateBranchProfit, calculateChainTotals, exportChainDailyCSV } = useRestaurant();
+  const { 
+    branches, 
+    selectedDate, 
+    setSelectedDate,
+    records,
+    getRecord, 
+    calculateBranchProfit, 
+    calculateChainTotals, 
+    exportChainDailyCSV,
+    seedDemoHistory
+  } = useRestaurant();
 
   const chainTotals = calculateChainTotals(selectedDate);
   const totalSales = chainTotals.totalSales;
@@ -70,13 +81,20 @@ export const ChainOverview: React.FC<Props> = ({
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-2">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-                M.M.A. Kababs Rolls & Biryani Center
-              </h1>
-              <p className="text-stone-300 text-xs sm:text-sm mt-1 max-w-2xl">
-                Daily branch sales, manual purchases, stock tally, and live profit/kharcha calculation across Bangalore.
-              </p>
+            <div className="flex items-start sm:items-center gap-4">
+              <img 
+                src="/logo.png" 
+                alt="MMA Kababs Logo" 
+                className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-2xl bg-black border-2 border-amber-500/40 p-1 shadow-2xl shrink-0" 
+              />
+              <div>
+                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
+                  M.M.A. Kababs Rolls & Biryani Center
+                </h1>
+                <p className="text-stone-300 text-xs sm:text-sm mt-1 max-w-2xl">
+                  Daily branch sales, manual purchases, stock tally, and live profit/kharcha calculation across Bangalore.
+                </p>
+              </div>
             </div>
 
             {/* Quick Export & WhatsApp Share Buttons */}
@@ -177,6 +195,17 @@ export const ChainOverview: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      {/* Aggregate Sales Trend Graph with Weekly/Monthly/Yearly and 6-Branch Comparison */}
+      <ChainSalesTrendChart
+        selectedDate={selectedDate}
+        calculateChainTotals={calculateChainTotals}
+        getRecord={getRecord}
+        calculateBranchProfit={calculateBranchProfit}
+        branches={branches}
+        records={records}
+        onSelectDate={(newDate) => setSelectedDate(newDate)}
+      />
 
       {/* 6 Bangalore Branches Cards */}
       <div className="space-y-4">

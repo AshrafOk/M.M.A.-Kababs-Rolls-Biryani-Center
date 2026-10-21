@@ -13,6 +13,8 @@ import { DatabaseBackupModal } from './components/DatabaseBackupModal';
 import { ChainDailyReportModal } from './components/ChainDailyReportModal';
 import { PasswordManagementModal } from './components/PasswordManagementModal';
 import { LoginModal } from './components/LoginModal';
+import { AndroidInstallModal } from './components/AndroidInstallModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { BranchId } from './types/restaurant';
 
 function MainContent() {
@@ -22,6 +24,7 @@ function MainContent() {
   const [isChainReportOpen, setIsChainReportOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAndroidInstallOpen, setIsAndroidInstallOpen] = useState(false);
 
   // Role Access Enforcement:
   // If logged in as Manager, strictly restrict to branch view of their own branch only!
@@ -57,6 +60,7 @@ function MainContent() {
         onOpenChainReport={() => setIsChainReportOpen(true)}
         onOpenPasswordModal={() => setIsPasswordModalOpen(true)}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onOpenAndroidInstall={() => setIsAndroidInstallOpen(true)}
       />
 
       {/* Main Container */}
@@ -103,12 +107,21 @@ function MainContent() {
         onClose={() => setIsPasswordModalOpen(false)}
       />
 
+      {/* Android App Installation & Mobile Setup Modal */}
+      <AndroidInstallModal
+        isOpen={isAndroidInstallOpen}
+        onClose={() => setIsAndroidInstallOpen(false)}
+      />
+
       {/* Mandatory Login Modal if not logged in */}
       <LoginModal
         isOpen={!authSession || isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         canDismiss={!!authSession}
       />
+
+      {/* Offline Connectivity Notification */}
+      <OfflineIndicator />
     </div>
   );
 }

@@ -22,6 +22,7 @@ import {
 import { useRestaurant } from '../context/RestaurantContext';
 import { BranchId, InventoryItemRow } from '../types/restaurant';
 import { COMMON_EXPENSE_PRESETS } from '../data/mockData';
+import { BranchSalesTrendChart } from './BranchSalesTrendChart';
 
 interface Props {
   branchId: BranchId;
@@ -32,6 +33,8 @@ export const BranchDailyLedger: React.FC<Props> = ({ branchId, onOpenPasswordMod
   const { 
     branches, 
     selectedDate, 
+    setSelectedDate,
+    records,
     getRecord, 
     updateItemRow, 
     addItemRow, 
@@ -43,7 +46,8 @@ export const BranchDailyLedger: React.FC<Props> = ({ branchId, onOpenPasswordMod
     updateRecord,
     calculateBranchProfit,
     authSession,
-    isCurrentRecordEditable 
+    isCurrentRecordEditable,
+    seedDemoHistory
   } = useRestaurant();
 
   const currentBranch = branches.find(b => b.id === branchId) || branches[0];
@@ -353,6 +357,17 @@ _${record.notes || 'Daily manual branch entry verified by manager.'}_`;
           </span>
         </div>
       </div>
+
+      {/* Branch Sales Performance Graph (Default: Last 7 Days, Customizable: Weekly/Monthly/Yearly) */}
+      <BranchSalesTrendChart
+        branchId={branchId}
+        branchName={currentBranch.name}
+        selectedDate={selectedDate}
+        records={records}
+        getRecord={getRecord}
+        calculateBranchProfit={calculateBranchProfit}
+        onSelectDate={(newDate) => setSelectedDate(newDate)}
+      />
 
       {/* SECTION 1: DAILY SALES INFLOW */}
       <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm space-y-4">

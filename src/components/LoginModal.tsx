@@ -65,9 +65,11 @@ export const LoginModal: React.FC<Props> = ({ isOpen, onClose, canDismiss = fals
       <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col">
         {/* Brand Header */}
         <div className="p-6 bg-stone-900 text-white text-center relative">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-500 mx-auto flex items-center justify-center shadow-lg mb-3">
-            <UtensilsCrossed className="w-6 h-6 text-stone-950" />
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="M.M.A. Kababs & Rolls Logo" 
+            className="w-20 h-20 object-contain rounded-2xl mx-auto bg-black border-2 border-amber-500/40 p-1 shadow-xl mb-3" 
+          />
           <h3 className="font-black text-lg tracking-tight">{RESTAURANT_NAME}</h3>
           <p className="text-xs text-stone-400 mt-1">Bangalore 6 Branches Operations Portal</p>
 
